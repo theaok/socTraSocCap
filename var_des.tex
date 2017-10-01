@@ -1,0 +1,32 @@
+\begin{table}[H]\centering\footnotesize
+ \caption{\label{var_des} Variable definitions.}
+\begin{tabular} {p{1.5in}p{4.5in}}   \hline
+name & description   \\ \hline
+  swb & "On a scale from 0 to 10 where 0 means completely dissatisfied and 10 means completely satisfied, how satisfied are you with your life?" [imputed] \\
+  casp & casp scale: see table \\ref{casp} [ac] \\
+\hline {\bf social capital:}&\\
+  voluntary or charity work & "Please look at card 38: which of the activities listed on this card - if any - have you done in the past twelve months?" "Done voluntary or charity work" [ac] \\
+  how often done voluntary or charity work & "How often in the past twelve months did you [do voluntary or charity work/cared for a sick or disabled adult/provided help to friends or neighbors/attended an educational or training course/go to a sport, social or other kind of club/taken part in the activities of a religious organization (church, synagogue, mosque etc.)/taken part in a political or community-related organization/read books, magazines or newspapers/do word or number games such as crossword puzzles or Sudoku/play cards or games such as chess]?" [ac] \\
+  attended an educational or training course & "Please look at card 38: which of the activities listed on this card - if any - have you done in the past twelve months?" "Done voluntary or charity work" [ac]  [ac] \\
+  gone to a sport, social or other kind of club & "Please look at card 38: which of the activities listed on this card - if any - have you done in the past twelve months?" "Done voluntary or charity work" [ac]  [ac] \\
+  taken part in a political or community-related organization & "Please look at card 38: which of the activities listed on this card - if any - have you done in the past twelve months?" "Done voluntary or charity work" [ac]  [ac] \\
+  read books, magazines or newspapers & "Please look at card 38: which of the activities listed on this card - if any - have you done in the past twelve months?" "Done voluntary or charity work" [ac]  [ac] \\
+  did word or number games (crossword puzzles/Sudoku...) & "Please look at card 38: which of the activities listed on this card - if any - have you done in the past twelve months?" "Done voluntary or charity work" [ac]  [ac] \\
+  played cards or games such as chess & "Please look at card 38: which of the activities listed on this card - if any - have you done in the past twelve months?" "Done voluntary or charity work" [ac]  [ac] \\
+  annual old age, early retirement pensions, survivor and war pension & EP078\_1-2-3-7-8-9 (1-2-3-9-10-11 in w6)  "After taxes, about how large was a typical payment of [ your public old age pension/ your public old age supplementary pension or public old age second pension/ your public early retirement or pre-retirement pension/ your main public sickness benefits/ your main public disability insurance pension/ your secondary public disability insurance pension/ your Secondary public sickness benefits/ your public unemployment benefit or insurance/ your main public survivor pension from your spouse or partner/ your secondary public survivor pension from your spouse or partner/ your public war pension/ your public long-term care insurance/ your social assistance] in [STR (Year - 1)]?" [imputed] \\
+  annual private occupational pensions & "After taxes, what was the approximate annual amount received from all your occupational pensions in [STR (Year - 1)]?" [imputed] \\
+  other regular payments from private pernsions & "After any taxes and contributions, about how large was the average payment of [ you life insurance payments from a private insurance company/ your private annuity or private personal pension payments/ your alimony/ your regular payments from charities/ your long-term care insurance payments] in [STR (Year - 1)]?" [imputed] \\
+  pension & EP078\_1-2-3-7-8-9 (1-2-3-9-10-11 in w6) from annual old age, early retirement pensions, survivor and war pension AND from annual private occupational pensions AND other regular payments from private pernsions  [imputed] \\
+  disability/sickness benefits & EP078\_5-6  and EP078\_3\_6\_10 (4-7 in w6) [from question in "annual old age, early retirement pensions, survivor and war pension"] [imputed] \\
+  unemployment benefits & EP078\_6 (8 in w6) [from question in "annual old age, early retirement pensions, survivor and war pension"] [imputed] \\
+  social assistance & EP078\_10 (12-13 in w6) [from question in "annual old age, early retirement pensions, survivor and war pension"] [imputed] \\
+  labor income & "After any taxes and contributions, what was your approximate annual income from employment in the year [STR (Year - 1)]? Please include any additional or extra or lump sum payment, such as bonuses, 13 month, Christmas or Summer pays." AND "After any taxes and contributions and after paying for any materials, equipment or goods that you use in your work, what was your approximate annual income from self-employment in the year [STR (Year - 1)]?" [imputed] \\
+  household net worth & calculated variable--see Release Guide 6.0.0 [imputed] \\
+  years of education & "How many years have you been in full-time education?" full-time education * includes: receiving tuition, engaging in practical work or supervised study or taking examinations * excludes: full-time working, home schooling, distance learning, special on-the-job training, evening classes, part-time private vocational training, flexible or part-time higher education studies, etc  [imputed] \\
+  age & Age of respondent (based on interview year)  "In which month and @byear@b were you born?" [imputed] \\
+  male & OBSERVATION Note sex of respondent from observation (ask if unsure) \\
+  self reported health & "Would you say your health is..." "Poor"..."Excellent" [imputed] \\
+  married and living together & "What is your marital status?"  [imputed] \\
+  employed & The following questions are about your current main job. "In this job were you a private-sector employee, a public sector employee or self-employed?"  [imputed] \\
+  number of children & "Now I will ask some questions about your children. How many children do you have that are still alive? Please count all natural children, fostered, adopted and stepchildren [ , including those of/ , including those of/ , including those of/ , including those of] [ your husband/ your wife/ your partner/ your partner] [ {Name of partner/spouse}]." [imputed] \\
+\hline\end{tabular}\end{table}
