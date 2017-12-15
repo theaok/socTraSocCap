@@ -423,7 +423,7 @@ loc i 1
 foreach i in 1 4 5 7 8 9 10{
 d ac036_*
 d ac035d*
-di ">>> `i'"
+di "--- `i'"
 replace ac036_`i'=0 if ac035d`i'==0
 }
 
@@ -488,8 +488,62 @@ save `tmp'acW6, replace
 
 use sharew6_rel6-0-0_ep.dta, clear
 
+/*
+voluntariness of retirement
+voluntary retirement
+*/
+
 d  ep064* ep069*
-sum ep064* ep069* //bummer many missing
+sum ep064* ep069* //guess better ep064, it is exactly about voluntary retirement
+d  ep064*
+sum ep064*
+foreach v of varlist ep064*{
+//ta `v'
+codebook `v'
+}
+
+foreach v of varlist ep069*{
+//ta `v'
+codebook `v'
+}
+
+
+** voluntary/voluntariness of retirmenet
+
+gen volRet=.
+
+replace volRet=1 if ep064d1==1|ep064d2==1|ep064d3==1|ep064d4==1|ep064d8==1|ep064d9==1|ep064d10==1 
+
+replace volRet=0 if ep064d5==1|ep064d6==1|ep064d7==1
+
+ta volRet, mi
+
+/* LATER: was thinking to replace with 0, just loop over all and make zer if missing--but */
+/* probably not, guess would have to learn more about this question, maybe they */
+/* pick 0 and there is just some other reason and who knows whether voluntary or not */
+
+//IF USING IT MAY ADD TO TEXT:
+/*
+why stpped working and why retired, we used why retired--exactly about what we
+are doing here and we coded them in a following way:
+
+%numbers are actual codes ffom the question so tyhey are helpful
+``1. Became eligible for public pension''\\
+``2. Became eligible for private occupational pension''\\
+``3. Became eligible for a private pension''\\
+``4. Was offered an early retirement option/window with special incentives or
+bonus''\\
+``8. To retire at same time as spouse or partner''\\
+``9. To spend more time with family''\\
+``10. To enjoy life''\\
+
+and coded 0 if:
+``5. Made redundant (for example pre-retirement)''\\
+``6. Own ill health''\\
+``7. Ill health of relative or friend''\\
+*/
+
+
 
 **** technical vars
 
@@ -506,6 +560,28 @@ save `tmp'cfW6, replace
 
 //TODO:
 //excluding those with severe pscyhical amd mental illness--who cannot volunteer
+
+
+**** EP disability
+
+use sharew6_rel6-0-0_ep.dta,clear
+codebook ep005_
+recode ep005_ (4=1)(nonm=0),gen(disabled)
+ta  ep005_ disabled, mi
+la var disabled "permanently sick or disabled"
+keep mergeid disabled
+save `tmp'epW6, replace
+
+**** PH
+//LATER: may look at disability and healtyh stuff here
+
+use sharew6_rel6-0-0_ph.dta,clear
+
+
+**** MH
+//LATER: may look at disability and healtyh stuff here
+
+use sharew6_rel6-0-0_mh.dta, clear
 
 
 
@@ -532,6 +608,10 @@ drop _merge
 
 
 merge 1:1 mergeid using `tmp'spW6
+drop if _merge==2
+drop _merge
+
+merge 1:1 mergeid using `tmp'epW6
 drop if _merge==2
 drop _merge
 
