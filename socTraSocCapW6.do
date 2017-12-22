@@ -1,5 +1,5 @@
-
-
+* TEN UŻYWAJ
+* Dodałem zmienne z imputations pozwalające na dodatkową selekcję próby do regresji.
 //TODOand have commands in the template like aokhist listtex stepwise etc
 
 /* have most of the stuff outputted to online appendix:)--start with that and then */
@@ -15,29 +15,33 @@
 
 /* rememebr to run!! */
 /* git add *.do *.tex  *.org -n */
-stata
+* stata // LM
 clear                                  
 capture set maxvar 10000
 version 14                             
 set more off                           
-run ~/papers/root/do/aok_programs.do
+* run ~/papers/root/do/aok_programs.do
+do "C:\projekty\NCN_AdamOK\wyniki\github\new_121217\aok_programs.do" // LM
 
-loc d = "/home/aok/misc/grants/poland/leszekMorawskiVistula/"       
-
+* loc d = "/home/aok/misc/grants/poland/leszekMorawskiVistula/"       
+loc d = "C:\projekty\NCN_AdamOK\wyniki\AOK1\"
 capture mkdir "`d'scr"
 capture mkdir "/tmp/shareElderly"
 loc pap shareElderly
-loc tmp "/tmp/`pap'/"
+loc tmp "`d'/tmp//`pap'/"
+di "`tmp'"
 
 //file open tex using `d'out/tex, write text replace
 //file write tex `"%<*ginipov>`:di  %9.2f `r(rho)''%</ginipov>"' 
+cap file close f // LM: dodałem bo się zawieszało przy powtórnej próbie uruchomienia
 
 file open f using `d'notes.txt, write replace
 file write f  "a note...." _n _n
 
-
+/*
 ! time stata -b do  /home/aok/misc/grants/poland/leszekMorawskiVistula/creW6.do  &
 ! time stata -b do  /home/aok/misc/grants/poland/leszekMorawskiVistula/creW4.do  &
+*/
 use `tmp'allW6,clear
 
 ** weights:  see per weights in data/share n.org
@@ -79,6 +83,7 @@ sum `x'
 
 cap file close f
 
+/* LM - temporary
 aok_var_des , ff(swb casp)fname(`tmp'var_des-1.tex)
 aok_var_des , ff(volCha volChaO ac035d4 ac035d5 ac035d7 ac035d8 ac035d9 ac035d10)fname(`tmp'var_des-2.tex)
 aok_var_des , ff(ypen1 ypen2 yreg1 pen disab ub sa)fname(`tmp'var_des-3.tex)
@@ -98,19 +103,15 @@ aok_hist2,x(volCha volChaO ac035d4 ac035d5 ac035d7 ac035d8 ac035d9 ac035d10)d(`t
 aok_hist2,x(ypen1 ypen2 yreg1 pen disab ub sa)d(`tmp')f(hist-3)
 aok_hist2,x(labInc hnetw yedu age male  health mar emp nchild)d(`tmp')f(hist-4)
 
-
+*/
 
 **** regressions
 
 *** first playing
 
-
-
-
 *** quasi final regressions
 
-
-** social transfers
+** social transfers (TABLE 2. OLS of life satisfaction on pensions and other transfers inclusing income and wealth. Beta (fully standarized) coefficients reported.)
 
 /*A:
 1 income:
@@ -119,12 +120,73 @@ aok_hist2,x(labInc hnetw yedu age male  health mar emp nchild)d(`tmp')f(hist-4)
 4 transfers 
 */
 
+/*** LM (19.12.2017)  Zmienne z SHARE (MRPiPS) */
+
+/* Zmienne kontrolne : */ 
+	/* własność domu : perho (Percentage of house owned)  */	
+						cap drop d_perho
+						gen d_perho = perho
+						recode d_perho (-99=0) (0/39.9=0) (40/100=1)
+	/*      owner, tenant or rent free					*/
+						su otrf
+
+/* DEMOGRAFIA */
+	/* miast0/wieś */  gen rural = ( areabldgi==5)   // mo: areabldgi w gv_housing. Zwykle 0/1 dzielimy kategorie np.: 
+						  // 1: A rural area or village, 
+						  // 0: A big city, The suburbs or outskirts of a big city, A large town,  A small town
+/* ZDROWIE */
+	/* fizyczna nieaktywność */ 	su phinact
+	/* adl */ 						su adl 
+	/* iadl */ 						su iadl
+	/* uścisk */ 					su maxgrip
+	/* mobility */					su mobility
+	/* niepełnosprawność */ 		su eurod 
+									// depr = (eurod>=4) // W gv_health są dwie zmienne: eurodcat - 0/1 czy ma depresję (dokładnie czy ma 4 lub więcej z 12 symptomów depresji)
+										 // oraz eurod - zmienna ciągła od 0 do 12 - identyfikująca 12 symptomów depresji - im więcej tym gorzej
+										 // polecam eurodcat	
+	
+/* SYTUACJA MATERIALNA I ZAWODOWA */
+	/* mem=fdistress */ su fdistress // nie ma
+			                         // mm: złożyć 1_mem I 2_mem w jedną zmienną (=1 jak 1_mem lub 2_mem ==1)?
+
+
+*/
+
+
+/* LM: SAMPLE SELECTION : chcemy mieć "volunteering flexible people" */
+/* wstępnie : wiek, mobility [20% ma co najmniej 3 objawy - duża utrata], depresja (eurod) i iadl */
+cap drop sample0 
+gen sample0=1
+replace sample0 = 0 if (age>90) 		// na podstawie MO
+replace sample0 = 0 if  mobility>=5 	// restrykcyjne ograniczenie - mobility>=3 wycina 17000 obs
+replace sample0 = 0 if  eurod>=4 
+replace sample0 = 0 if  iadl>1
+
+
 //inc--guess would count tings again
-reg swb labInc [pw=cciw_w6], beta robust
+reg swb labInc i.country [pw=cciw_w6], beta robust // LM: dodałem i.country aby było zgodnie z tekstem
 estadd beta
 est sto a1
 
-d pen ub sa disab
+/* LM : Model a1 */
+reg swb labIncppp i.country [pw=cciw_w6], beta robust // LM: dodałem i.country aby było zgodnie z tekstem
+	estadd beta
+	est sto a1ppp_lm
+	
+	cap drop labIncppp01
+	gen labIncppp01 = (labIncppp>0 & labIncppp~=.)
+
+	cap drop int_labIncppp01
+	gen int_labIncppp01=labIncppp01*labIncppp
+
+	reg swb labIncppp01 int_labIncppp01 i.country [pw=cciw_w6] , beta robust // LM: dodałem fixed-effect dla pracujacych
+	est sto a1pppInt_lm
+
+	reg swb labIncppp01 int_labIncppp01 i.country [pw=cciw_w6] if sample0==1, beta robust // LM: dodałem fixed-effect dla pracujacych
+	est sto a1pppIntS_lm
+
+
+d pen ub sa disab			// LM: max(disab) = 2851620 (!!!) - outlier ?
 corr pen ub sa disab 
 sum pen ub sa disab
 count
@@ -134,24 +196,82 @@ count if sa>0
 count if disab>0
 
 reg swb labInc  pen [pw=cciw_w6], beta robust
-estadd beta
-est sto a2
+estadd beta  
+est sto a2  //a2
 
-reg swb labInc  pen ub sa disab [pw=cciw_w6], beta robust
+/* LM: Model a2 */
+	cap drop penppp01
+	gen penppp01 = (penppp>0 & penppp~=.)
+
+	cap drop int_penppp01
+	gen int_penppp01=penppp01*penppp
+
+	reg swb labIncppp  penppp [pw=cciw_w6], beta robust
+	estadd beta  
+	est sto a2ppp_lm  //a2
+
+	reg swb labIncppp01 int_labIncppp01 penppp01 int_penppp01 i.country [pw=cciw_w6], beta robust
+	estadd beta  
+	est sto a2pppInt_lm  //a2
+
+	reg swb labIncppp01 int_labIncppp01 penppp01 int_penppp01 i.country if sample0==1 [pw=cciw_w6], beta robust
+	estadd beta  
+	est sto a2pppIntS_lm  //a2
+
+
+
+reg swb labInc pen ub sa disab [pw=cciw_w6], beta robust
 estadd beta
-est sto a3
+est sto a3 //a3
 
 //neg even contrlling for hea and emp
 //reg swb labInc inc pen ub sa disab hea emp, beta robust
 
+/* LM: Model a3 */
+	cap drop ubppp01
+	gen ubppp01 = (ubppp>0 & ubppp~=.)
+
+	cap drop int_ubppp01
+	gen int_ubppp01=ubppp01*ubppp
+
+	cap drop sappp01
+	gen sappp01 = (sappp>0 & sappp~=.)
+
+	cap drop int_sappp01
+	gen int_sappp01=sappp01*sappp
+
+	cap drop disabppp01
+	gen disabppp01 = (disabppp>0 & disabppp~=.)
+
+	cap drop int_disabppp01
+	gen int_disabppp01=disabppp01*disabppp
+
+	reg swb labIncppp01 int_labIncppp01 penppp01 int_penppp01 ubppp01 int_ubppp01 sappp01 int_sappp01 disabppp01 int_disabppp01 ///
+	     i.country if sample0==1 [pw=cciw_w6], beta robust
+	estadd beta  
+	est sto a3pppIntS_lm  //a2
+
+	
+	
 //liab otrf--guess already incl in hnetw
 reg swb labInc  pen ub sa disab    hnetw [pw=cciw_w6], beta robust //missing for many perho
 estadd beta
-est sto a4
+est sto a4 //a4
+
+
 
 reg swb labInc pen ub sa disab   hnetw male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust //missing for many perho
 estadd beta
-est sto a5
+est sto a5 //a5
+
+/* LM: Model a5 - pełny wypas */
+gen age2 = age*age/100
+
+reg swb labIncppp01 int_labIncppp01 penppp01 int_penppp01 ubppp01 int_ubppp01 sappp01 int_sappp01 disabppp01 int_disabppp01 ///  
+hnetw male mar emp age age2 yedu nchild health i.country  if sample0==1 [pw=cciw_w6], beta robust //missing for many perho
+estadd beta
+est sto a5pppIntS_lm //a5
+
 
 estout a* ,style(tab)  cells(beta(star fmt(%9.2f))) replace  collabels(, none) stats(N, labels("N")fmt(%9.0f))
 
@@ -161,7 +281,7 @@ estout a* using `tmp'regAw6.tex,style(tex)  cells(beta(star fmt(%9.2f))) replace
 
 
 
-** social capital
+** social capital (Table 3: OLS of life satisfaction on volunteerring and pensions. Beta (fully standarized) coefficients reported.)
 
 
 /*B:
@@ -170,29 +290,61 @@ estout a* using `tmp'regAw6.tex,style(tex)  cells(beta(star fmt(%9.2f))) replace
 3 income
 4 other controls
 */
+exit 
 
 //no ac035d6 in w6!!
 
 reg swb VCO2-VCO5 [pw=cciw_w6], robust beta
 estadd beta
 est sto b1
+
+/* LM */
+reg swb VCO2-VCO5 [pw=cciw_w6] if sample0==1, robust beta
+estadd beta
+est sto b1S_lm
+
+
 reg swb VCO2-VCO5 ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 [pw=cciw_w6], robust beta 
 estadd beta
-est sto b2
+est sto b2 // b2
 
 d ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10
 
-reg swb VCO2-VCO5 ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 emp  [pw=cciw_w6], robust beta
-estadd beta
-est sto b3
+/* LM : współliniowość między wolontariatem a aktywnościami */
+	reg swb VCO2-VCO5 ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 [pw=cciw_w6] if sample0==1, robust beta
+	estadd beta
+	est sto b2S_lm
+
+	corr VCO2-VCO5 ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 if sample0==1
+	/* LM - 77% osób w próbie czyta książki, więc to mało dyskryminuje */
+	
+	cap drop activity
+	egen activity = anymatch(ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10), values(1)
+	for num 2/5: tab activity VCOX if sample0==1, row  // widać powiązanie aktywność-wolontariat. Jak się wyżuci "czytanie książek" to jest to jeszcze wyraźniejsze.
 
 reg swb VCO2-VCO5 ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 emp  [pw=cciw_w6], robust beta
 estadd beta
-est sto b3
+est sto b3 // b3
+
+reg swb VCO2-VCO5 ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 emp  [pw=cciw_w6], robust beta
+estadd beta
+est sto b3 // b3 (po co powtórzone ?)
+
+/* LM */
+reg swb VCO2-VCO5 ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 emp [pw=cciw_w6] if sample0==1, robust beta
+estadd beta
+est sto b3S_lm
+
 
 reg swb VCO2-VCO5 ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust 
 estadd beta
-est sto b4
+est sto b4 // b4
+
+/* LM */
+reg swb VCO2-VCO5 ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 male mar emp age age2 yedu nchild health i.country  if sample0==1 [pw=cciw_w6], beta robust 
+estadd beta
+est sto b4S_lm // b4
+
 
 estout b* ,style(tab)  cells(beta(star fmt(%9.2f))) replace  collabels(, none) stats(N, labels("N")fmt(%9.0f))
 
@@ -204,29 +356,43 @@ estout b* using `tmp'regBw6.tex,style(tex)  cells(beta(star fmt(%9.2f))) replace
 
 
 
-**C: substytucja
+**C: substytucja (Table 4: OLS of SWB (life satisfaction and CASP) on volunteerring and pensions. Beta (fully standarized) coefficients reported.)
 
 
 
 reg swb VCO2-VCO5 pen  [pw=cciw_w6], robust beta
 estadd beta
-est sto c1
+est sto c1 //c1w6
 
 
 reg swb VCO2-VCO5 pen ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 labInc ub sa disab   hnetw male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust  
 estadd beta
-est sto c2
+est sto c2 //c2w6
 
 corr swb casp
 
 reg casp VCO2-VCO5 pen  [pw=cciw_w6], robust beta
 estadd beta
-est sto c3
+est sto c3 //c3w6
 
 
 reg casp VCO2-VCO5 pen ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 labInc ub sa disab   hnetw male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust  
 estadd beta
-est sto c4
+est sto c4 //c4w6
+
+/* LM */
+reg casp VCO2-VCO5 ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 ///
+         labIncppp01 int_labIncppp01 penppp01 int_penppp01 ubppp01 int_ubppp01 sappp01 int_sappp01 disabppp01 int_disabppp01  ///
+		 hnetw male mar emp age age2 yedu nchild health i.country if sample0==1 [pw=cciw_w6], beta robust  
+estadd beta
+est sto c4pppIntS_lm //c4w6
+
+/* LM - wersja bez aktywności - ale przy CASP to nie ma znaczenia, można zostawić aktywności bo wolontariat pozostaje istotny. */
+reg casp VCO2-VCO5  ///
+         labIncppp01 int_labIncppp01 penppp01 int_penppp01 ubppp01 int_ubppp01 sappp01 int_sappp01 disabppp01 int_disabppp01  ///
+		 hnetw male mar emp age age2 yedu nchild health i.country if sample0==1 [pw=cciw_w6], beta robust  
+estadd beta
+est sto c4pppIntS1_lm //c4w6
 
 estout c* ,style(tab)  cells(beta(star fmt(%9.3f))) replace  collabels(, none) stats(N, labels("N")fmt(%9.0f))
 
@@ -242,23 +408,23 @@ estout c* using `tmp'regCw6.tex,style(tex)  cells(beta(star fmt(%9.2f))) replace
 
 reg swb VCO2-VCO5 pen  [pw=cciw_w6], robust beta
 estadd beta
-est sto c1W6
+est sto c1W6 // identyczne jak est sto c1 (po co ?)
 
 
-reg swb VCO2-VCO5 pen ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 labInc ub sa disab   hnetw male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust  
+reg swb VCO2-VCO5 pen ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 labInc ub sa disab hnetw male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust  
 estadd beta
-est sto c2W6
+est sto c2W6 // jw
 
 corr swb casp
 
 reg casp VCO2-VCO5 pen  [pw=cciw_w6], robust beta
 estadd beta
-est sto c3W6
+est sto c3W6 // jw
 
 
 reg casp VCO2-VCO5 pen ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 labInc ub sa disab   hnetw male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust  
 estadd beta
-est sto c4W6
+est sto c4W6 // jw
 
 
 //! time stata -b do  /home/aok/misc/grants/poland/leszekMorawskiVistula/creW4.do
@@ -336,7 +502,8 @@ di (_b[pen]/(-2* _b[pen2])) //*1000000
 
 
 reg swb labInc pen i.penC [pw=cciw_w6], beta robust
-reg swb labInc i.penCAT ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust 
+* reg swb labInc i.penCAT ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust // variable penCAT not found
+  reg swb labInc i.penC ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust 
 
 
 reg swb labInc PC2-PC4 ub sa disab  hnetw male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust 
@@ -374,7 +541,7 @@ reg casp VCO2-VCO5 PC2-PC4 i.incQ  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac03
 
 
 ** playing
-
+/*
 so the more income/wealth you have, the less volunteering matter!
 so guess explanatyion is that volunteering can help more if one hersolf doesnt
 have muchg 
@@ -390,7 +557,7 @@ it doesnt help!
 
 TODO!!!! (from gmail)
 see vol for ppl with 0 pension, maybe interactions , maybe subset on other transfers and soc capitals too!
-
+*/
 
 reg casp  i.volCha##c.pen ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 labInc ub sa disab   hnetw male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust  
 //yeah, so need some money to be able to volunteer!
@@ -401,7 +568,8 @@ reg casp  volCha##c.inc thexp ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 
 //interesting!!
 margins volCha, at(inc=(0(20000)100000))
 marginsplot, x(inc)  //plot1opts(lpattern(dot))title(" ")legend(off)
-dy
+* dy // patrz aok_programs.do line: 44
+
 
 //say that same for theinc2
 reg casp  i.volCha##c.thinc2  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  hnetw male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust  
@@ -411,7 +579,7 @@ reg casp  volCha##c.hnetw ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 inc 
 //interesting!!
 margins volCha, at(hnetw=(0(200000)1000000))
 marginsplot, x(hnetw)  //plot1opts(lpattern(dot))title(" ")legend(off)
-dy
+* dy
 
 
 reg casp VCO2-VCO5 pen ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 labInc ub sa disab   hnetw male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust  
@@ -465,6 +633,10 @@ corr aokInc inc thinc2
 
 ** variou sscenarios
 
+// LM: Skąd te scenariusze ? Jak ustalone tresholds: 500, 1000, 5000, 10000, ... ?
+// LM: Dla "rich: here those that volunteer a lot are happy!! others less!" 
+// su hnetw if casp~=. : max value of hnetw=30059.09
+
 //super poor
 reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if inc<500 & hnetw < 2500 & pen<1000, beta robust  
 
@@ -476,52 +648,53 @@ reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa di
 
 reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if (inc<10000 & hnetw < 50000 & pen<10000)&((hnetw > 10000 |inc>5000 | pen>5000)& liab<10000), beta robust  
 
+/* LM
+	//rich: here those that volunteer a lot are happy!! others less!
+	 reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if ((hnetw > 50000 &(inc>10000 | pen>5000)& liab<10000)), beta robust 
 
-//rich: here those that volunteer a lot are happy!! others less!
- reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if ((hnetw > 50000 &(inc>10000 | pen>5000)& liab<10000)), beta robust 
-
-//very rich
- reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if ((hnetw > 100000 &(inc>20000 | pen>10000)& liab<10000)), beta robust 
+	//very rich
+	 reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if ((hnetw > 100000 &(inc>20000 | pen>10000)& liab<10000)), beta robust 
 
 
-//super rich
- reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if ((hnetw > 250000 &(inc>20000 | pen>10000)& liab<10000)), beta robust 
-
+	//super rich
+	 reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if ((hnetw > 250000 &(inc>20000 | pen>10000)& liab<10000)), beta robust 
+*/
 
 //------
 //!! MAYBE TOPAPER: assume 2 scenarios:
 //bottom line: the rich benefit 2x less from volunteering than middle class and poor!
 
-//rich
- reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if ((hnetw > 300000 & liab<10000))|(inc>100000&thexp<20000), beta robust 
+/* LM
+	//rich
+	 reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if ((hnetw > 300000 & liab<10000))|(inc>100000&thexp<20000), beta robust 
 
-//middle class only
-reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if (inc<10000 & hnetw < 50000 & pen<10000)&((hnetw > 10000 |inc>5000 | pen>5000)& liab<10000), beta robust  
+	//middle class only
+	reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if (inc<10000 & hnetw < 50000 & pen<10000)&((hnetw > 10000 |inc>5000 | pen>5000)& liab<10000), beta robust  
 
-//non-rich
- reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if ((hnetw < 100000))&(inc<50000), beta robust 
+	//non-rich
+	 reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if ((hnetw < 100000))&(inc<50000), beta robust 
 
- reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if ((hnetw < 50000)), beta robust 
-
-
-//middle class 
-reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if (inc<50000 & hnetw < 100000)&(inc>1000 & hnetw > 5000), beta robust  
-
-reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if (inc<50000 & hnetw < 100000), beta robust  
+	 reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if ((hnetw < 50000)), beta robust 
 
 
-** PAPER
+	//middle class 
+	reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if (inc<50000 & hnetw < 100000)&(inc>1000 & hnetw > 5000), beta robust  
+
+	reg casp  VCO2-VCO5  ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10  ub sa disab  male mar emp age yedu nchild health i.country [pw=cciw_w6] if (inc<50000 & hnetw < 100000), beta robust  
+*/
+
+** PAPER (Table 5: OLS of SWB (life satisfaction and CASP) on volunteerring and pensions. Unstandarized coefficients reported.)
 
 
-use `tmp'allW6,clear
+use `tmp'allW6,clear 
 
 reg swb volCha##c.inc i.country [pw=cciw_w6], robust beta
 estadd beta
-est sto d1
+est sto d1  // d1
 
 reg swb volCha##c.inc thexp hnetw ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust  
 estadd beta
-est sto d2
+est sto d2 // d2
 
 margins volCha, at(inc=(0(20)100))
 marginsplot, x(inc)  plot2opts(lpattern(dot))title(" ")legend(off)saving(d2.gph,replace)ysc(range(7.4(.2)8))ylab(7.4(.2)8)ytit("predicted life satisfaction")
@@ -530,11 +703,13 @@ marginsplot, x(inc)  plot2opts(lpattern(dot))title(" ")legend(off)saving(d2.gph,
 
 reg swb volCha##c.hnetw i.country [pw=cciw_w6], robust beta
 estadd beta
-est sto d3
+est sto d3 // d3
 
 reg swb volCha##c.hnetw inc thexp ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust  
 estadd beta
-est sto d4
+est sto d4 // d4
+
+
 
 margins volCha, at(hnetw=(0(200)1000))
 marginsplot, x(hnetw)  plot2opts(lpattern(dot))title(" ")legend(off)saving(d4.gph,replace)ysc(range(7.4(.2)8))ylab(7.4(.2)8)ytit("predicted life satisfaction")
@@ -545,11 +720,11 @@ marginsplot, x(hnetw)  plot2opts(lpattern(dot))title(" ")legend(off)saving(d4.gp
 
 reg casp volCha##c.inc i.country [pw=cciw_w6], robust beta
 estadd beta
-est sto d5
+est sto d5 // d5
 
 reg casp volCha##c.inc thexp hnetw ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust  
 estadd beta
-est sto d6
+est sto d6 // d6
 
 margins volCha, at(inc=(0(20)100))
 marginsplot, x(inc)  plot2opts(lpattern(dot))title(" ")legend(off)saving(d6.gph,replace)ysc(range(-.1(.1).3))ylab(-.1(.1).3)ytit("predicted CASP")
@@ -558,16 +733,76 @@ marginsplot, x(inc)  plot2opts(lpattern(dot))title(" ")legend(off)saving(d6.gph,
 
 reg casp volCha##c.hnetw i.country [pw=cciw_w6], robust beta
 estadd beta
-est sto d7
+est sto d7 // d7
 
 reg casp volCha##c.hnetw inc thexp ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 male mar emp age yedu nchild health i.country [pw=cciw_w6], beta robust  
 estadd beta
-est sto d8
+est sto d8 // d8
 
-margins volCha, at(hnetw=(0(200)1000))
+margins volCha, at(hnetw=(0(200)1500))
 marginsplot, x(hnetw)  plot2opts(lpattern(dot))title(" ")legend(off)saving(d8.gph,replace)ysc(range(-.1(.1).3))ylab(-.1(.1).3)ytit("predicted CASP")
 //dy
 
+
+/* LM : bogactwo & emerytura - próba - tak jak poprzednio + tylko emeryci */
+cap eret clear
+		reg casp i.volChaOft##c.hnetw  int_penppp01 /// // VCO2##c.hnetw VCO3##c.hnetw VCO4##c.hnetw VCO5##c.hnetw
+				ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 ///
+				male mar  age age2 yedu nchild health i.country [pw=cciw_w6] if sample0==1 & penppp01==1 , beta robust  // TYLKO EMERYCI 
+		estadd beta
+		est sto d8S_lm // d4
+
+		*     emp  thexp  inc   labIncppp01 int_labIncppp01 penppp01 int_penppp01 ubppp01 int_ubppp01 sappp01 int_sappp01 disabppp01 int_disabppp01  ///
+		*     VCO2-VCO5
+		*     volCha##c.hnetw
+
+		margins volChaOft, at(hnetw=(0(200)1500))   // warunek "if" sprawia, że porównujemy VCO`n' z tymi niebędącymi w wolontariacie
+		marginsplot, x(hnetw)  plot2opts(lpattern(dot))title(" ")saving(d8lm.gph,replace)ysc(range(-.1(.1).6))ylab(-.1(.1).6)ytit("predicted CASP")
+		
+
+		
+/* LM : bogactwo & emerytura - próba - tak jak poprzednio + tylko emeryci */
+cap eret clear
+		reg casp i.volChaOft##c.penppp  /// // VCO2##c.hnetw VCO3##c.hnetw VCO4##c.hnetw VCO5##c.hnetw
+				ac035d4 ac035d5  ac035d7 ac035d8 ac035d9 ac035d10 ///
+				male mar  age age2 yedu nchild health i.country [pw=cciw_w6] if sample0==1 & penppp01==1 , beta robust  // TYLKO EMERYCI  
+		estadd beta
+		est sto d8S_lm // d4
+
+		*     emp  thexp  inc   labIncppp01 int_labIncppp01 penppp01 int_penppp01 ubppp01 int_ubppp01 sappp01 int_sappp01 disabppp01 int_disabppp01  ///
+		*     VCO2-VCO5
+		*     volCha##c.hnetw
+
+		margins volChaOft, at(penppp=(0(1000)15000))   // warunek "if" sprawia, że porównujemy VCO`n' z tymi niebędącymi w wolontariacie
+		marginsplot, x(penppp)  plot2opts(lpattern(dot))title(" ")saving(d8lm.gph,replace)ysc(range(-.1(.1).6))ylab(-.1(.1).6)ytit("predicted CASP")
+		
+		
+		
+		
+		
+		
+/* Bogactwo (net worth) a wpływ wolontariatu na CASO */		
+		foreach n of numlist 2(1)5 {
+		margins VCO`n' if (VCO`n'==1 | volCha==0), at(hnetw=(0(1000)15000))   // warunek "if" sprawia, że porównujemy VCO`n' z tymi niebędącymi w wolontariacie
+		marginsplot, x(hnetw)  plot2opts(lpattern(dot))title(" ")legend(off)saving(d8lm`n'.gph,replace)ysc(range(-.1(.1).6))ylab(-.1(.1).6)ytit("predicted CASP")
+		}
+
+		/* LM : lepszy rysunek - jeden wykres z linią dla "no volunteering", "less often", ...., "almost every day" *
+				można skorzystać z macierzy e(b) zachowanej po margins - skomplikowane, ale wykonalne. Da się prościej ? 
+				Uwaga ! "post" zapisuje wyniki do e(), ale nowe margins wymaga wyczyszczenia modelu (eret clear) i nowego oszacowania. 
+				Inaczej "margins cannot work with its own posted results" */
+		gr combine d8lm2.gph d8lm3.gph  d8lm4.gph d8lm5.gph // LM: Do refleksji
+
+		
+/* Emerytura a wpływ wolontariatu na CASO */		
+		foreach n of numlist 2(1)5 {
+		margins VCO`n' if (VCO`n'==1 | volCha==0), at(int_penppp01=(0(1000)15000))  // warunek "if" sprawia, że porównujemy VCO`n' z tymi niebędącymi w wolontariacie
+		marginsplot, x(int_penppp01)  plot2opts(lpattern(dot))title(" ")legend(off)saving(d8Penlm`n'.gph,replace)ysc(range(-.1(.1).6))ylab(-.1(.1).6)ytit("predicted CASP")
+		}
+		gr combine d8Penlm2.gph d8Penlm3.gph  d8Penlm4.gph d8Penlm5.gph // LM: Do refleksji
+
+		
+		
 //TODO here and table e sed rm thiose lines with base case
 estout d* using `tmp'regDw6.tex,style(tex)  cells(b(star fmt(%9.4f))) replace  collabels(, none) stats(N, labels("N")fmt(%9.0f))drop(*country*)varlabels(_cons constant) label starlevels(+ 0.10 * 0.05 ** 0.01 *** 0.001)
 //yay so actually stronger effect than in w4 :) so no more 2/3 of effect if anything stronger on volunteering!!
@@ -579,7 +814,7 @@ estout d* using `tmp'regDw6.tex,style(tex)  cells(b(star fmt(%9.4f))) replace  c
 
 
 gr combine d2.gph d4.gph d6.gph d8.gph
-dy
+// dy
 gr export `tmp'regDmarg.pdf, replace
 
 * if bigger for retired ppl: can check is effect of volunteering stronger among retired persons? and by pension
@@ -640,8 +875,9 @@ estout e* using `tmp'regEw6.tex,style(tex)  cells(b(star fmt(%9.4f))) replace  c
 
 
 
-
+/* LM
 *----------------------------GIT CP-----------------------
 mkdir leszekGit
 cp dofiles tex, not n org!!
 git push https://github.com/theaok/socTraSocCap
+*/
