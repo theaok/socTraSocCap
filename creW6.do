@@ -1,34 +1,20 @@
 //new: time /usr/local/stata13_ru/stata-mp -b do  /home/aok/misc/grants/poland/leszekMorawskiVistula/cre.do
 //stata
-
-// LM: Wprowadzone zmian z mail 15.12.2017 15:42
-// creW6.do patrzylem sie troche na volunariness of retirement, wazna niby vbariable ale missing dla wiekszosci! wiec pewnie nic tu nie zrobimy
-
 clear                                  
 capture set maxvar 10000
 version 14                             
 set more off                           
-* run ~/papers/root/do/aok_programs.do // LM
+run ~/papers/root/do/aok_programs.do
 
-* loc d = "/home/aok/misc/grants/poland/leszekMorawskiVistula/"   // AOK
-  loc d = "C:\projekty\NCN_AdamOK\wyniki\AOK1\"  // LM   
+loc d = "/home/aok/misc/grants/poland/leszekMorawskiVistula/"       
 
 capture mkdir "`d'scr"
-capture mkdir "\tmp\shareElderly"
-
+capture mkdir "/tmp/shareElderly"
 loc pap shareElderly
-loc tmp "`d'\tmp\\`pap'\"
-di "`tmp'"
-
-cap mkdir "`d'tmp"  // LM
-cap mkdir "`d'tmp\shareElderly" // LM
-
-
+loc tmp "/tmp/`pap'/"
 
 //file open tex using `d'out/tex, write text replace
 //file write tex `"%<*ginipov>`:di  %9.2f `r(rho)''%</ginipov>"' 
-
-cap file close f // LM: dodałem bo się zawieszało przy powtórnej próbie uruchomienia
 
 file open f using `d'notes.txt, write replace
 file write f  "a note...." _n _n
@@ -59,12 +45,10 @@ lookfor volun
 */
 
 **2017: release6.0:  4, 6 and coverscreens
-/* LM
+
 cd ~/data/share_Survey-Health-Ageing-Retirement-Europe
 cd sharew6
 ! unzip sharew6_rel6-0-0_ALL_datasets_stata*
-LM */ 
-cd "D:\DATA\SHARE\Wave6\rel6-0-0"
 
 use sharew6_rel6-0-0_gv_imputations, clear
 //using imputed, per leszek everybody is using imputed essp for income
@@ -74,12 +58,7 @@ use sharew6_rel6-0-0_gv_imputations, clear
 
 d mergeidp coupleid6 implicat htype fam_resp  
 
-** get rid of duplicates, implicats
-
-
-/* LM: uzupełnione o zmienne z dane.do (CenEA_SHARE) */
-loc x y* em* ms* lifehap* ghto* pppx* liab  hnetw nchild perho otrf  thexp gali  sphus gender thinc thinc2  lifesat implicat htype fam_resp age  country ///
-nursinghome isced  ngrchild  chronic eyesightr hearing bmi weight height mobility adl iadl phinact eurod cjs pwork ghih naly saly politics fdistress maxgrip // yedu mstat gali
+loc x y* liab  hnetw nchild ngrchild  perho otrf  thexp gali em* ms* sphus gender thinc thinc2  lifesat lifehap*  implicat htype fam_resp age ghto* pppx* country nursinghome isced   chronic eyesightr hearing bmi weight height mobility adl iadl phinact eurod cjs pwork ghih naly saly politics fdistress maxgrip
 
 keep `x' mergei* currency coupleid6
 
@@ -97,11 +76,12 @@ foreach v of var * {
 label var `v' "`l`v''"
  }
 
-keep if age>=50  // LM: sample selection
-
-
 
 ** key vars
+
+la var mobility "mobility limitations"
+note mobility: "Please tell me whether you have any difficulty doing each of the everyday activities on this card. Exclude any difficulties that you expect to last less than three months. 1. Walking 100 metres; 2. Sitting for about two hours; 3. Getting up from a chair after sitting for long periods; 4. Climbing several flights of stairs without resting; 5. Climbing one flight of stairs without resting; 6. Stooping, kneeling, or crouching; 7. Reaching or extending your arms above shoulder level; 8. Pulling or pushing large objects like a living room chair; 9. Lifting or carrying weights over 10 pounds/5 kilos, like a heavy bag of groceries; 10. Picking up a small coin from a table" [imputed]
+
 
 sum lifesat //ac012
 ta lifehap_f
@@ -220,6 +200,11 @@ d nchild
 la var nchild "number of children"
 note  nchild: "Now I will ask some questions about your children. How many children do you have that are still alive? Please count all natural children, fostered, adopted and stepchildren [ , including those of/ , including those of/ , including those of/ , including those of] [ your husband/ your wife/ your partner/ your partner] [ {Name of partner/spouse}]." [imputed]
 
+d ngrchild
+la var ngrchild "number of grandchildren"
+note  ngrchild: "Talking about grandchildren, how many grandchildren do you [ and your/ and your/ and your/ and your] [husband/ wife/ partner/ partner] have altogether?" [imputed]
+
+
 //NOTE: not using these lump sums like ylsp*; these are just like one time
 
 //lm: traditional way to group them in income analysis eg as in euromod--model podatkowo dochodowy dla europy TODO: use these in regressions!
@@ -235,16 +220,17 @@ note hnetw: calculated variable--see Release Guide 6.0.0 [imputed] //no clue how
 /* Only permanent sources */
 gen labInc = ydip + yind
 la var labInc "labor income"
+
 note labInc: "After any taxes and contributions, what was your approximate annual income from employment in the year [STR (Year - 1)]? Please include any additional or extra or lump sum payment, such as bonuses, 13 month, Christmas or Summer pays." AND "After any taxes and contributions and after paying for any materials, equipment or goods that you use in your work, what was your approximate annual income from self-employment in the year [STR (Year - 1)]?" [imputed]
 
-	la var ypen1 "annual old age, early retirement pensions, survivor and war pension"
-	note ypen1: EP078\_1-2-3-7-8-9 (1-2-3-9-10-11 in w6)  "After taxes, about how large was a typical payment of [ your public old age pension/ your public old age supplementary pension or public old age second pension/ your public early retirement or pre-retirement pension/ your main public sickness benefits/ your main public disability insurance pension/ your secondary public disability insurance pension/ your Secondary public sickness benefits/ your public unemployment benefit or insurance/ your main public survivor pension from your spouse or partner/ your secondary public survivor pension from your spouse or partner/ your public war pension/ your public long-term care insurance/ your social assistance] in [STR (Year - 1)]?" [imputed]
+la var ypen1 "annual old age, early retirement pensions, survivor and war pension"
+note ypen1: EP078\_1-2-3-7-8-9 (1-2-3-9-10-11 in w6)  "After taxes, about how large was a typical payment of [ your public old age pension/ your public old age supplementary pension or public old age second pension/ your public early retirement or pre-retirement pension/ your main public sickness benefits/ your main public disability insurance pension/ your secondary public disability insurance pension/ your Secondary public sickness benefits/ your public unemployment benefit or insurance/ your main public survivor pension from your spouse or partner/ your secondary public survivor pension from your spouse or partner/ your public war pension/ your public long-term care insurance/ your social assistance] in [STR (Year - 1)]?" [imputed]
 
-	la var ypen2 "annual private occupational pensions"
-	note ypen2: "After taxes, what was the approximate annual amount received from all your occupational pensions in [STR (Year - 1)]?" [imputed]
+la var ypen2 "annual private occupational pensions"
+note ypen2: "After taxes, what was the approximate annual amount received from all your occupational pensions in [STR (Year - 1)]?" [imputed]
 
-	la var yreg1 "other regular payments from private pernsions"
-	note yreg1: "After any taxes and contributions, about how large was the average payment of [ you life insurance payments from a private insurance company/ your private annuity or private personal pension payments/ your alimony/ your regular payments from charities/ your long-term care insurance payments] in [STR (Year - 1)]?" [imputed]
+la var yreg1 "other regular payments from private pernsions"
+note yreg1: "After any taxes and contributions, about how large was the average payment of [ you life insurance payments from a private insurance company/ your private annuity or private personal pension payments/ your alimony/ your regular payments from charities/ your long-term care insurance payments] in [STR (Year - 1)]?" [imputed]
 
 gen pen = ypen1 + ypen2 + yreg1
 la var pen "pension"
@@ -268,33 +254,6 @@ note sa: EP078\_10 (12-13 in w6) [from question in "annual old age, early retire
 d yedu
 la var yedu "years of education"
 note yedu: "How many years have you been in full-time education?" full-time education * includes: receiving tuition, engaging in practical work or supervised study or taking examinations * excludes: full-time working, home schooling, distance learning, special on-the-job training, evening classes, part-time private vocational training, flexible or part-time higher education studies, etc  [imputed]
-
-
-//this is according to leszek!;; see release guide per gv_exrates
-//leszek: if euro then multiply by nominal and divide by ppp as in guide
-//a see http://data.worldbank.org/indicator/PA.NUS.PPP
-
-// LM: źródła dochodów w PPP, ale agregaty - labInc, disab, pen, ub, nie ... dlaczego ?
-// LM: (19.12.17)
-foreach v of varlist labInc pen disab ub sa {  
-gen `v'ppp = `v'
-replace `v'ppp=`v'/1000
-replace `v'ppp=`v'/pppx2015 //assume ppp for 10 and 12 same as 11
-la var `v'ppp  `"`:var lab `v'' PPP '000"' 
-}
-
-
-
-ta currency
-foreach v of varlist thinc2  inc thexp  ydip  yind ylsp* ypen* yreg1  yreg2 ylsr1 ylsr2 ysrent yaohm ybabsmf yincnrp  liab  hnetw ysrent yaohm yincnrp{  
-replace `v'=`v'/1000
-replace `v'=`v'/pppx2015 //assume ppp for 10 and 12 same as 11
-la var `v'  `"`:var lab `v'' PPP '000"' 
-}
-
-foreach v of varlist perho otrf{
-replace `v'=. if `v'<0
-}
 
 
 gen cs=""
@@ -352,11 +311,24 @@ kountry cs, from(other) to(iso2c)
 
 
 
+//this is according to leszek!;; see release guide per gv_exrates
+//leszek: if euro then multiply by nominal and divide by ppp as in guide
+//a see http://data.worldbank.org/indicator/PA.NUS.PPP
+ta currency
+foreach v of varlist labInc pen ub sa disab  thinc2  inc thexp  ydip  yind ylsp* ypen* yreg1  yreg2 ylsr1 ylsr2 ysrent yaohm ybabsmf yincnrp  liab  hnetw ysrent yaohm yincnrp{
+replace `v'=`v'/1000
+replace `v'=`v'/pppx2015 //assume ppp for 10 and 12 same as 11
+la var `v'  `"`:var lab `v'' PPP '000"' 
+}
 
+foreach v of varlist perho otrf{
+replace `v'=. if `v'<0
+}
 
-loc x swb thinc2 inc thexp male health mar age  emp ylsp* ypen*  country cs implicat perho otrf liab  hnetw yedu nchild  labInc yreg1 yreg2 ylsr1 ylsr2 ysrent yaohm ybabsmf yincnrp  liab  hnetw ysrent yaohm yincnrp pen ub sa disab
-* keep `x' mergeid currency // LM: dlaczego wyrzucamy część zmiennych ?
-
+/*
+loc x swb thinc2 inc thexp  male health mar age  emp ylsp* ypen*   country implicat perho otrf liab  hnetw yedu nchild ngrchild labInc yreg1 yreg2 ylsr1 ylsr2 ysrent yaohm ybabsmf yincnrp  liab  hnetw ysrent yaohm yincnrp pen ub sa disab
+keep `x' mergeid currency
+*/
 
 save `tmp'imputedW6, replace
 
@@ -520,61 +492,60 @@ save `tmp'acW6, replace
 
 use sharew6_rel6-0-0_ep.dta, clear
 
-/* 
-voluntariness of retirement 
-voluntary retirement 
-*/ 
- 
+/*
+voluntariness of retirement
+voluntary retirement
+*/
+
 d  ep064* ep069*
+sum ep064* ep069* //guess better ep064, it is exactly about voluntary retirement
+d  ep064*
+sum ep064*
+foreach v of varlist ep064*{
+//ta `v'
+codebook `v'
+}
 
-sum ep064* ep069* //guess better ep064, it is exactly about voluntary retirement 
-d  ep064* 
-sum ep064* 
+foreach v of varlist ep069*{
+//ta `v'
+codebook `v'
+}
 
-foreach v of varlist ep064*{ 
 
-//ta `v' 
-codebook `v' 
-} 
+** voluntary/voluntariness of retirmenet
 
-foreach v of varlist ep069*{ 
-//ta `v' 
-codebook `v' 
-} 
+gen volRet=.
 
-** voluntary/voluntariness of retirmenet 
-gen volRet=. 
-replace volRet=1 if ep064d1==1|ep064d2==1|ep064d3==1|ep064d4==1|ep064d8==1|ep064d9==1|ep064d10==1  
-replace volRet=0 if ep064d5==1|ep064d6==1|ep064d7==1 
-ta volRet, mi 
+replace volRet=1 if ep064d1==1|ep064d2==1|ep064d3==1|ep064d4==1|ep064d8==1|ep064d9==1|ep064d10==1 
 
-/* LATER: was thinking to replace with 0, just loop over all and make zer if missing--but */ 
-/* probably not, guess would have to learn more about this question, maybe they */ 
-/* pick 0 and there is just some other reason and who knows whether voluntary or not */ 
+replace volRet=0 if ep064d5==1|ep064d6==1|ep064d7==1
 
-//IF USING IT MAY ADD TO TEXT: 
+ta volRet, mi
 
-/* 
+/* LATER: was thinking to replace with 0, just loop over all and make zer if missing--but */
+/* probably not, guess would have to learn more about this question, maybe they */
+/* pick 0 and there is just some other reason and who knows whether voluntary or not */
 
-why stpped working and why retired, we used why retired--exactly about what we 
-are doing here and we coded them in a following way: 
+//IF USING IT MAY ADD TO TEXT:
+/*
+why stpped working and why retired, we used why retired--exactly about what we
+are doing here and we coded them in a following way:
 
-%numbers are actual codes ffom the question so tyhey are helpful 
-``1. Became eligible for public pension''\\ 
-``2. Became eligible for private occupational pension''\\ 
-``3. Became eligible for a private pension''\\ 
-``4. Was offered an early retirement option/window with special incentives or 
-bonus''\\ 
-``8. To retire at same time as spouse or partner''\\ 
-``9. To spend more time with family''\\ 
-``10. To enjoy life''\\ 
+%numbers are actual codes ffom the question so tyhey are helpful
+``1. Became eligible for public pension''\\
+``2. Became eligible for private occupational pension''\\
+``3. Became eligible for a private pension''\\
+``4. Was offered an early retirement option/window with special incentives or
+bonus''\\
+``8. To retire at same time as spouse or partner''\\
+``9. To spend more time with family''\\
+``10. To enjoy life''\\
 
-and coded 0 if: 
-
-``5. Made redundant (for example pre-retirement)''\\ 
-``6. Own ill health''\\ 
-``7. Ill health of relative or friend''\\ 
-*/ 
+and coded 0 if:
+``5. Made redundant (for example pre-retirement)''\\
+``6. Own ill health''\\
+``7. Ill health of relative or friend''\\
+*/
 
 
 
@@ -594,30 +565,31 @@ save `tmp'cfW6, replace
 //TODO:
 //excluding those with severe pscyhical amd mental illness--who cannot volunteer
 
-**** EP disability 
-use sharew6_rel6-0-0_ep.dta,clear 
-codebook ep005_ 
-recode ep005_ (4=1)(nonm=0),gen(disabled) 
-ta  ep005_ disabled, mi 
-la var disabled "permanently sick or disabled" 
-keep mergeid disabled 
-save `tmp'epW6, replace 
 
-***** Housing (LM: 19.12.2017 : dodałem dla areabldgi (klasa miejscowości)
-	use sharew6_rel6-0-0_gv_housing, clear
-	keep mergeid areabldgi typebldgi6 nstepsi nuts1_2015 nuts2_2015 nuts3_2015
-	save `tmp'hhW6, replace 
+**** EP disability
+
+use sharew6_rel6-0-0_ep.dta,clear
+codebook ep005_
+recode ep005_ (4=1)(nonm=0),gen(disabled)
+ta  ep005_ disabled, mi
+la var disabled "permanently sick or disabled"
+note disabled: "Please look at card 7. In general, which of the following best describes your @bcurrent@b employment situation?" "1. Retired; 2. Employed or self-employed (including working for family business); 3. Unemployed; 4. Permanently sick or disabled; 5. Homemaker; 97. Other" coded 1 if "Permanently sick or disabled"; 0 otherwhise  [EP]
+
+keep mergeid disabled
+save `tmp'epW6, replace
+
+**** PH
+//LATER: may look at disability and healtyh stuff here
+
+use sharew6_rel6-0-0_ph.dta,clear
 
 
-**** PH 
+**** MH
+//LATER: may look at disability and healtyh stuff here
 
-//LATER: may look at disability and healtyh stuff here 
+use sharew6_rel6-0-0_mh.dta, clear
 
-use sharew6_rel6-0-0_ph.dta,clear 
 
-**** MH 
-//LATER: may look at disability and healtyh stuff here 
-use sharew6_rel6-0-0_mh.dta, clear 
 
 **** merge with other datasets
 
@@ -626,17 +598,11 @@ merge 1:1 mergeid using sharew6_rel6-0-0_gv_weights
 drop if _merge ==2
 drop _merge
 
-merge 1:1 mergeid using `tmp'hhW6
-drop if _merge ==2
-drop _merge
-
 merge 1:1 mergeid using `tmp'techW6
-* drop if mn024==2
 drop if _merge==2
 drop _merge
 
 merge 1:1 mergeid using `tmp'cfW6
-* drop if cf010_==. //drop proxies--na okroglo bo nie ma pytania o proxies-- a to pytanie jest tylko zadawane participants,not proxies per monika from sczecin from share
 drop if _merge==2
 drop _merge
 
@@ -644,17 +610,45 @@ merge 1:1 mergeid using `tmp'acW6
 drop if _merge==2
 drop _merge
 
+
 merge 1:1 mergeid using `tmp'spW6
 drop if _merge==2
 drop _merge
 
-merge 1:1 mergeid using `tmp'epW6 
-drop if _merge==2 
-drop _merge 
+merge 1:1 mergeid using `tmp'epW6
+drop if _merge==2
+drop _merge
 
+
+**subset to useful sample; i had mn024 and cf010 and adding others based on lm
+
+//note when counting how many dropped for tex issuing each of them first--otherwhise dropping from already dropped
+
+su phinact
+su adl
+su iadl
+su maxgrip
+su mobility
+
+codebook mobility, ta(100)
+count if mobility>=5
+//count if mobility>=3
+//drop if mobility>=5 //no dont drop them! can even volunteer on wheelechair! but contrl dof rit :)
+d iadl //same here; nut not controlling for it as would be too much collinarity as it seep very similar to mobility
+d eurod //wouldn't drop those! can be depressed and still volunteer!
+
+keep if age>=50
+//drop if age >90 //meh already have age2 and some old folks can volunteer if in good shape even if >90 and we do control for being in good shape!
+drop if mn024==2
+drop if cf010_==. //drop proxies--na okroglo bo nie ma pytania o proxies-- a to pytanie jest tylko zadawane participants,not proxies per monika from sczecin from share
+
+/*
 foreach v of varlist volCha* casp ac035d*  swbAC pil swb inc male health mar age emp ylsp* ypen*   country implicat perho otrf liab  hnetw yedu nchild rhfo labInc yreg1 pen ub sa disab ac*{
 codebook `v', ta(100)
 }
+*/
+
+gen age2=age^2
 
 save `tmp'allW6,replace
 
